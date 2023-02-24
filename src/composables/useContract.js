@@ -12,12 +12,15 @@ export const useContract = ({ address, abi, network, expanded }) => {
   }
 
   const readContract = async (method, args = []) => {
+    // TODO only read if method exists?
     const res = await contract.methods[method](...args).call();
     return res;
   };
 
   const batchReadContract = async (methods) => {
     const results = {};
+    //TODO return a different variable name in case same method is used multiple times
+    // ex: check balance of multiple coin ids - balanceOf
 
     const promises = methods.map(([methodName, methodArgs = []]) =>
       readContract(methodName, methodArgs)
