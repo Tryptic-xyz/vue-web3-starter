@@ -1,6 +1,6 @@
 import { useContract } from "./useContract";
 import { useWallet } from "./useWallet";
-import { ref, reactive, toRefs } from "vue";
+import { reactive, toRefs } from "vue";
 import { toWei } from "../utils/web3";
 import { useConnectedNetwork } from "./useConnectedNetwork";
 
