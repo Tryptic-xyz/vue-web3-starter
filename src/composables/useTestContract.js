@@ -2,7 +2,6 @@ import { useContract } from "./useContract";
 import { useWallet } from "./useWallet";
 import { ref, reactive, toRefs } from "vue";
 import { toWei } from "../utils/web3";
-import { useTX } from "./useTX";
 import { useConnectedNetwork } from "./useConnectedNetwork";
 
 const abi = [
@@ -468,19 +467,13 @@ const account = reactive({
   observerBalance: 0,
 });
 
-export const useOsnipeContract = () => {
-  const { batchReadContract, readContract, writeContract, methods } =
+export const useTestContract = () => {
+  const { batchReadContract, readContract, writeContract, txPending } =
     useContract({
       address: "0xAA8E256202067ec9c9c3C9eBA1E5ce6dd273c15C",
-      network: "goerli",
       abi,
       expanded: true,
     });
-
-  const txPending = ref(false);
-  // TODO could probably kill this and just use pending = ref()
-  // since we don't really need to hold the tx state anymore
-  // becuase it's being alerted to user.
 
   const wallet = useWallet();
 
@@ -527,49 +520,45 @@ export const useOsnipeContract = () => {
 
   const mintSnipers = async () => {
     const wei = toWei(CONTRACT_CONSTANTS.sniperPriceETH);
-    try {
-      txPending.value = true;
-      await writeContract("mintSnipers", wallet.account.value, 1, []);
-      init(wallet.account.value);
-    } catch (error) {
-      console.log("error in catch", error);
-    }
-    txPending.value = false;
+    const tx = await writeContract("mintSnipers", wallet.account.value, 1, []);
+
+    init(wallet.account.value);
+
+    return tx;
   };
 
   const mintPurveyors = async () => {
     const wei = toWei(CONTRACT_CONSTANTS.purveyorPriceETH);
-    try {
-      txPending.value = true;
-      await writeContract("burnForPurveyor", wallet.account.value, 1, [1]);
-      init(wallet.account.value);
-    } catch (error) {
-      console.log("error in catch", error);
-    }
-    txPending.value = false;
+
+    const tx = await writeContract("burnForPurveyor", wallet.account.value, 1, [
+      1,
+    ]);
+
+    init(wallet.account.value);
+
+    return tx;
   };
 
-  const mintObservers = async (quantity, onSuccess = () => {}) => {
+  const mintObservers = async (quantity = "1", onSuccess, onError) => {
     const wei = toWei(CONTRACT_CONSTANTS.observerPriceETH);
 
     txPending.value = true;
-    console.log("hi");
 
-    try {
-      await writeContract(
-        "mintObservers",
-        wallet.account.value,
-        1 * quantity,
-        [quantity],
-        () => {
-          init(wallet.account.value);
-          onSuccess();
-        }
-      );
-    } catch (err) {
-      console.log(err);
-    }
-    txPending.value = false;
+    const tx = await writeContract(
+      "mintObservers",
+      wallet.account.value,
+      1 * quantity,
+      [quantity],
+      () => {
+        init(wallet.account.value);
+        onSuccess();
+      },
+      onError
+    );
+
+    init(wallet.account.value);
+
+    return tx;
   };
 
   const redeemObservers = async (quantity, onSuccess = () => {}) => {
