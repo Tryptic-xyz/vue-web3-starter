@@ -12,7 +12,6 @@ const providers = {
 
 const error = ref(false);
 const provider = ref(null);
-const goerliProvider = ref(null);
 const hasProvider = ref(false);
 const hasInit = ref(false);
 const { network, getNetwork, onNetworkChanged } = useConnectedNetwork();
@@ -45,7 +44,7 @@ export const useProvider = () => {
       () => provider.value,
       async () => {
         if (provider.value) {
-          onInit();
+          onInit(provider.value);
         }
       },
       { immediate: true }
@@ -54,7 +53,6 @@ export const useProvider = () => {
 
   return {
     hasProvider,
-    goerliProvider,
     onProviderInit,
     provider,
     error,
