@@ -3,9 +3,11 @@ import { useProvider } from "./useProvider";
 import camelCase from "camelcase";
 import { useCreateTxUrl } from "./useCreateTxUrl";
 
-const hasInit = ref(false);
-
+// TODO accept goerli and mainnet addresses and use correct one depending on network?
 export const useContract = ({ address, abi, expanded }) => {
+  const hasInit = ref(false);
+  const txPending = ref(false);
+
   const { provider, onProviderInit } = useProvider();
   let contract;
 
@@ -39,30 +41,30 @@ export const useContract = ({ address, abi, expanded }) => {
   };
 
   const writeContract = async (method, from, value, args = []) => {
+    txPending.value = true;
+
     try {
       return await contract.methods[method](...args)
         .send({
           from,
           value,
         })
-        .on("error", (error) => {
-          if (error.code) return;
-
-          return {
-            ...error.receipt,
-            txURL: useCreateTxUrl(error.receipt.transactionHash),
-            error: {
-              message: "Transaction Failed",
-            },
-          };
-        })
         .on("sent", console.log)
         .then((receipt) => {
+          txPending.value = false;
           return { ...receipt, txURL: useCreateTxUrl(receipt.transactionHash) };
         });
     } catch (error) {
-      // metamask errors
-      return { error };
+      txPending.value = false;
+      if (error.code) return { error };
+
+      return {
+        ...error.receipt,
+        txURL: useCreateTxUrl(error.receipt.transactionHash),
+        error: {
+          message: "Transaction Failed",
+        },
+      };
     }
   };
 
@@ -76,5 +78,6 @@ export const useContract = ({ address, abi, expanded }) => {
     writeContract,
     batchReadContract,
     hasInit,
+    txPending,
   };
 };
