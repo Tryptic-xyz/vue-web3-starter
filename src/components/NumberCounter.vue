@@ -24,7 +24,7 @@
         v-model="count"
         :min="startAt"
         :max="max"
-        class="inline-flex items-center px-1 text-3xl font-bold text-center text-black outline-none cursor-default pointer-events-none focus:outline-none"
+        class="inline-flex items-center px-1 text-3xl font-bold text-center text-black outline-none cursor-default pointer-events-none -tracking-wide focus:outline-none"
         name="custom-number-input"
       />
       <button @click="inc" class="px-4 outline-none cursor-pointer">
