@@ -8,12 +8,12 @@ const networkMap = {
   42: "kovan",
 };
 
-export function useConnectedNetwork() {
-  const network = reactive({
-    id: null,
-    name: "",
-  });
+const network = reactive({
+  id: null,
+  name: "",
+});
 
+export function useConnectedNetwork() {
   const getNetwork = async () => {
     const id = await window.ethereum.request({ method: "eth_chainId" });
     network.id = parseInt(id);
@@ -22,7 +22,9 @@ export function useConnectedNetwork() {
 
   window.ethereum.on("chainChanged", getNetwork);
 
-  getNetwork();
+  if (!network.id) {
+    getNetwork();
+  }
 
   return {
     ...toRefs(network),
