@@ -109,10 +109,10 @@ import ConnectWalletButton from "../components/ConnectWalletButton.vue";
 import WalletStatus from "../components/WalletStatus.vue";
 
 const navigation = [
-  { name: "Product", href: "#" },
-  { name: "Features", href: "#" },
-  { name: "Marketplace", href: "#" },
-  { name: "Company", href: "#" },
+  // { name: "Product", href: "#" },
+  // { name: "Features", href: "#" },
+  // { name: "Marketplace", href: "#" },
+  // { name: "Company", href: "#" },
 ];
 
 const mobileMenuOpen = ref(false);
