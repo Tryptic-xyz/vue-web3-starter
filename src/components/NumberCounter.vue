@@ -24,7 +24,7 @@
         v-model="count"
         :min="startAt"
         :max="max"
-        class="inline-flex items-center max-w-[56px] text-3xl font-bold text-center text-black outline-none cursor-default pointer-events-none focus:outline-none"
+        class="inline-flex items-center px-1 text-3xl font-bold text-center text-black outline-none cursor-default pointer-events-none focus:outline-none"
         name="custom-number-input"
       />
       <button @click="inc" class="px-4 outline-none cursor-pointer">
@@ -41,7 +41,10 @@
 import { ref, watchEffect } from "vue";
 
 const props = defineProps({
-  max: Number,
+  max: {
+    type: Number,
+    default: 99,
+  },
   disabled: {
     type: Boolean,
     default: false,
