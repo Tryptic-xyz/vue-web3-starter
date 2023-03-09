@@ -1,15 +1,18 @@
+import { ref } from "vue";
 import { useProvider } from "./useProvider";
 import camelCase from "camelcase";
+import { useCreateTxUrl } from "./useCreateTxUrl";
 
-export const useContract = ({ address, abi, network, expanded }) => {
-  const { provider, goerliProvider } = useProvider();
+const hasInit = ref(false);
+
+export const useContract = ({ address, abi, expanded }) => {
+  const { provider, onProviderInit } = useProvider();
   let contract;
 
-  if (network === "mainnet" || !network) {
+  onProviderInit(() => {
     contract = new provider.value.eth.Contract(abi, address);
-  } else if (network === "goerli") {
-    contract = new goerliProvider.value.eth.Contract(abi, address);
-  }
+    hasInit.value = true;
+  });
 
   const readContract = async (method, args = []) => {
     // TODO only read if method exists?
@@ -36,20 +39,42 @@ export const useContract = ({ address, abi, network, expanded }) => {
   };
 
   const writeContract = async (method, from, value, args = []) => {
-    return contract.methods[method](...args).send({
-      from,
-      value,
-    });
+    try {
+      return await contract.methods[method](...args)
+        .send({
+          from,
+          value,
+        })
+        .on("error", (error) => {
+          if (error.code) return;
+
+          return {
+            ...error.receipt,
+            txURL: useCreateTxUrl(error.receipt.transactionHash),
+            error: {
+              message: "Transaction Failed",
+            },
+          };
+        })
+        .on("sent", console.log)
+        .then((receipt) => {
+          return { ...receipt, txURL: useCreateTxUrl(receipt.transactionHash) };
+        });
+    } catch (error) {
+      // metamask errors
+      return { error };
+    }
   };
 
   if (!expanded) {
-    return { ...contract.methods };
+    return { ...contract?.methods };
   }
 
   return {
-    methods: contract.methods,
+    methods: contract?.methods,
     readContract,
     writeContract,
     batchReadContract,
+    hasInit,
   };
 };
