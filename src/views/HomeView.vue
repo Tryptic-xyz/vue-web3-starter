@@ -4,18 +4,8 @@ import LoadingButton from "../components/LoadingButton.vue";
 import { useTestContract } from "../composables/useTestContract";
 import { showTxToast } from "../utils/ToastComponents";
 
-const {
-  mintObservers,
-  hasSniperPass,
-  hasPurveyorPass,
-  txPending,
-  hasCommittedPurveyorPass,
-  hasInit,
-  observerBalance,
-  redeemObservers,
-} = useTestContract();
+const { mintObservers, txPending } = useTestContract();
 
-// const {onTxError, onTxSuccess, write} = test
 const m = async (q) => {
   const tx = await mintObservers(q);
   console.log(tx);
@@ -31,7 +21,7 @@ const m = async (q) => {
 
     <LoadingButton
       :loading="txPending"
-      @click="() => m('7')"
+      @click="() => m('1')"
       btnText="click me"
     />
   </main>
