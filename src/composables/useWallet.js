@@ -105,23 +105,6 @@ export function useWallet() {
     }
   );
 
-  // const onAccountConnected = (
-  //   onConnected = () => null,
-  //   onDisconnected = () => null
-  // ) => {
-  //   watch(
-  //     () => account.value,
-  //     () => {
-  //       if (account.value) {
-  //         onConnected(account.value);
-  //       } else {
-  //         onDisconnected(account.value);
-  //       }
-  //     },
-  //     { immediate: true }
-  //   );
-  // };
-
   onProviderInit(initWallet);
 
   return {

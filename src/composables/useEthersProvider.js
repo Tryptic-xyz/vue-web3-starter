@@ -8,6 +8,7 @@ let alchemyProvider;
 
 const hasInit = ref(false);
 const error = ref(false);
+const initListeners = [];
 
 const networkMap = {
   "0x1": { name: "homestead", apiKey: "D_wvYxbSIbPs3n7F44pv-zahs5Du-ti4" },
@@ -42,13 +43,23 @@ export function useEthersProvider() {
     );
   });
 
-  const onProviderInit = (onInit) => {
-    watch(
-      () => hasInit.value,
-      async () => {
-        onInit({ browserProvider, alchemyProvider });
+  watch(
+    () => hasInit.value,
+    async () => {
+      while (initListeners.length) {
+        const cb = initListeners.shift();
+        cb({ browserProvider, alchemyProvider });
       }
-    );
+    }
+  );
+
+  // ensure fn's get called if already initialized
+  const onProviderInit = (cb) => {
+    if (!hasInit.value) {
+      initListeners.push(cb);
+    } else {
+      cb({ browserProvider, alchemyProvider });
+    }
   };
 
   init();

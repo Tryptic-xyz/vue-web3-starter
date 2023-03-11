@@ -1,4 +1,4 @@
-import { reactive, toRefs, watch } from "vue";
+import { reactive, watch } from "vue";
 
 const networkMap = {
   1: "homestead",
@@ -25,6 +25,7 @@ export function useConnectedNetwork() {
     return network;
   };
 
+  // TODO update to listener pattern
   const onNetworkChanged = (onChange) => {
     watch(
       () => network.name,
@@ -35,6 +36,8 @@ export function useConnectedNetwork() {
   };
 
   window.ethereum.on("chainChanged", getNetwork);
+
+  getNetwork();
 
   return {
     network,

@@ -1,17 +1,22 @@
 <script setup>
 import NumberCounter from "../components/NumberCounter.vue";
 import LoadingButton from "../components/LoadingButton.vue";
-// import { useTestContract } from "../composables/useTestContract";
-import { useWallet } from "../composables/useWallet";
-// import { showTxToast } from "../utils/ToastComponents";
+import { showTxToast } from "../utils/ToastComponents";
 import { useTest } from "../composables/useTest";
-const { testTx } = useTest();
+
+const {
+  testTX,
+  txPending,
+  hasCommittedPurveyorPass,
+  hasCommittedSniperPass,
+  observerBalance,
+} = useTest();
 
 const m = async (q) => {
-  testTx();
+  const tx = await testTX();
   // const tx = await mintObservers(q);
   // console.log(tx);
-  // showTxToast(tx);
+  showTxToast(tx);
   // const s = await getSigner();
   // console.log(s);
 };
@@ -20,6 +25,7 @@ const m = async (q) => {
 <template>
   <main>
     <div class="flex items-center justify-center">
+      {{ observerBalance }}
       <NumberCounter />
     </div>
 

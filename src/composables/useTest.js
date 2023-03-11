@@ -1,6 +1,6 @@
 import { useWallet } from "./useWallet";
-import { ethers } from "ethers";
-import { useEthersProvider } from "./useEthersProvider";
+import { useContract } from "./useContract";
+import { toRefs, reactive, ref } from "vue";
 
 const abi = [
   {
@@ -440,29 +440,99 @@ const abi = [
   },
 ];
 
+const CONTRACT_CONSTANTS = {
+  sniperPriceETH: "0.5",
+  observerPriceETH: "0.03",
+  purveyorPriceETH: "3",
+  sniperID: 0,
+  purveyorID: 1,
+  observerID: 2,
+  committedSniperID: 10,
+  committedPurveyorID: 11,
+  maxSnipersSupply: 488,
+  maxObserversPerCommitted: 10,
+};
+
+const fetching = ref(false);
+
+const account = reactive({
+  hasPurveyorPass: false,
+  hasSniperPass: false,
+  hasCommittedPurveyorPass: false,
+  hasCommittedSniperPass: false,
+  observerBalance: 0,
+});
+
 export function useTest() {
-  const { getSigner, account } = useWallet();
-  const { getProviders } = useEthersProvider();
+  const { account: address } = useWallet();
 
-  const testTx = async () => {
-    const { alchemyProvider } = getProviders();
-
-    const n = await alchemyProvider.getNetwork();
-    console.log(n);
-
-    const signer = await getSigner();
-
-    const contract = new ethers.Contract(
-      "0xAA8E256202067ec9c9c3C9eBA1E5ce6dd273c15C",
+  const { writeContract, batchReadContract, onContractInit, txPending } =
+    useContract({
+      address: "0xAA8E256202067ec9c9c3C9eBA1E5ce6dd273c15C",
       abi,
-      alchemyProvider
-    );
+    });
 
-    const b = await contract.balanceOf(account.value, 2);
-    console.log(b.toString());
+  const init = async () => {
+    if (!fetching.value) {
+      fetching.value = true;
+      const results = await batchReadContract([
+        ["alreadyMinted", [address.value]],
+        [
+          { name: "balanceOf", returnAs: "hasPurveyorPass", castAs: "boolean" },
+          [address.value, CONTRACT_CONSTANTS.purveyorID],
+        ],
+        [
+          { name: "balanceOf", returnAs: "hasSniperPass", castAs: "boolean" },
+          [address.value, CONTRACT_CONSTANTS.sniperID],
+        ],
+        [
+          {
+            name: "balanceOf",
+            returnAs: "hasCommittedSniperPass",
+            castAs: "boolean",
+          },
+          [address.value, CONTRACT_CONSTANTS.committedSniperID],
+        ],
+        [
+          {
+            name: "balanceOf",
+            returnAs: "hasCommittedPurveyorPass",
+            castAs: "boolean",
+          },
+          [address.value, CONTRACT_CONSTANTS.committedPurveyorID],
+        ],
+        [
+          {
+            name: "balanceOf",
+            returnAs: "observerBalance",
+            castAs: "number",
+          },
+          [address.value, CONTRACT_CONSTANTS.observerID],
+        ],
+      ]);
+
+      // sync with state
+      Object.keys(results).forEach((key) => {
+        account[key] = results[key];
+      });
+      fetching.value = false;
+    }
   };
 
-  return {
-    testTx,
+  const testTX = async (q = 1) => {
+    try {
+      const receipt = await writeContract("mintObservers", [q], {
+        value: q * 1,
+      });
+      account.observerBalance += q;
+
+      return receipt;
+    } catch (error) {
+      return error;
+    }
   };
+
+  onContractInit(init);
+
+  return { ...toRefs(account), testTX, txPending };
 }
