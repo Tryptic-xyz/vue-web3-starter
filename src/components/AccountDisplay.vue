@@ -16,14 +16,14 @@
 </template>
 
 <script setup>
-import { useENSContract } from "../composables/useENSContract";
+import { useENS } from "../composables/useENS";
 
 defineProps({
   avatar: String,
   accountTruncated: String,
 });
 
-const { displayName } = useENSContract();
+const { displayName } = useENS();
 </script>
 
 <style lang="scss" scoped></style>
