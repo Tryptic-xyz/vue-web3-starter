@@ -4,6 +4,8 @@ import { useWallet } from "./useWallet";
 import { useProvider } from "./useProvider";
 import { useConnectedNetwork } from "./useConnectedNetwork";
 
+const { getProviders } = useEthersProvider();
+
 const displayName = ref("");
 const hasInit = ref(false);
 
@@ -28,6 +30,7 @@ const ENS_ADDRESS = "0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C";
 let getNames = null;
 
 const { onNetworkChanged } = useConnectedNetwork();
+const { alchemyProvider } = getProviders();
 
 export const useENS = () => {
   const { onAccountConnected, account } = useWallet();

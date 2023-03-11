@@ -1,15 +1,19 @@
 <script setup>
 import NumberCounter from "../components/NumberCounter.vue";
 import LoadingButton from "../components/LoadingButton.vue";
-import { useTestContract } from "../composables/useTestContract";
-import { showTxToast } from "../utils/ToastComponents";
-
-const { mintObservers, txPending } = useTestContract();
+// import { useTestContract } from "../composables/useTestContract";
+import { useWallet } from "../composables/useWallet";
+// import { showTxToast } from "../utils/ToastComponents";
+import { useTest } from "../composables/useTest";
+const { testTx } = useTest();
 
 const m = async (q) => {
-  const tx = await mintObservers(q);
-  console.log(tx);
-  showTxToast(tx);
+  testTx();
+  // const tx = await mintObservers(q);
+  // console.log(tx);
+  // showTxToast(tx);
+  // const s = await getSigner();
+  // console.log(s);
 };
 </script>
 

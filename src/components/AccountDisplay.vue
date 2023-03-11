@@ -1,7 +1,6 @@
 <template>
   <div
-    class="inline-flex items-center p-1 pr-3 leading-none bg-black border-2 border-gold-dark rounded-xl drop-shadow-sm"
-    v-show="ensInit"
+    class="inline-flex items-center p-1 pr-3 leading-none bg-black border-2 account border-gold-dark rounded-xl drop-shadow-sm"
   >
     <img
       v-if="avatar"
@@ -17,14 +16,14 @@
 </template>
 
 <script setup>
-import { useENS } from "../composables/useENS";
-
-const { displayName, hasInit: ensInit } = useENS();
+import { useENSContract } from "../composables/useENSContract";
 
 defineProps({
   avatar: String,
   accountTruncated: String,
 });
+
+const { displayName } = useENSContract();
 </script>
 
 <style lang="scss" scoped></style>

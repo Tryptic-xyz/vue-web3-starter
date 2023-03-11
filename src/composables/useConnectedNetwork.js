@@ -1,11 +1,8 @@
 import { reactive, toRefs, watch } from "vue";
 
 const networkMap = {
-  1: "mainnet",
-  3: "ropsten",
-  4: "rinkeby",
+  1: "homestead",
   5: "goerli",
-  42: "kovan",
 };
 
 const etherscanMap = {
@@ -32,7 +29,7 @@ export function useConnectedNetwork() {
     watch(
       () => network.name,
       async () => {
-        onChange(network.name);
+        onChange(network);
       }
     );
   };
