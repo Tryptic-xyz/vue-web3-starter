@@ -18,12 +18,18 @@ const networkMap = {
 export function useEthersProvider() {
   const { onNetworkChanged, network } = useConnectedNetwork();
   const [onProviderInit, , toggleProviderInit] = useValueWatcher(hasInit);
+  const [onNoProvider, , toggleNoProvider] = useValueWatcher(false);
+
+  // maybe have a no provider detected event here?
+  // listen to it in directive?
 
   const init = async () => {
     const hasProvider = await detectEthereumProvider();
-    const network = networkMap[hasProvider?.chainId];
-
     if (hasProvider && !hasInit.value) {
+      const chainId = await hasProvider.request({
+        method: "eth_chainId",
+      });
+      const network = networkMap[chainId];
       browserProvider = new ethers.BrowserProvider(window.ethereum);
       alchemyProvider = new ethers.AlchemyProvider(
         network.name,
@@ -32,6 +38,7 @@ export function useEthersProvider() {
       toggleProviderInit();
     } else if (!hasInit.value && !hasProvider) {
       error.value = "Please visit this website from a web3 enabled browser.";
+      toggleNoProvider();
     }
   };
 
@@ -55,5 +62,6 @@ export function useEthersProvider() {
     error,
     hasInit,
     onProviderInit,
+    onNoProvider,
   };
 }
