@@ -1,14 +1,14 @@
 import { ethers } from "ethers";
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import detectEthereumProvider from "@metamask/detect-provider";
 import { useConnectedNetwork } from "./useConnectedNetwork";
+import { useValueWatcher } from "./useValueWatcher";
 
 let browserProvider;
 let alchemyProvider;
 
 const hasInit = ref(false);
 const error = ref(false);
-const initListeners = [];
 
 const networkMap = {
   "0x1": { name: "homestead", apiKey: "D_wvYxbSIbPs3n7F44pv-zahs5Du-ti4" },
@@ -16,11 +16,12 @@ const networkMap = {
 };
 
 export function useEthersProvider() {
-  const { onNetworkChanged } = useConnectedNetwork();
+  const { onNetworkChanged, network } = useConnectedNetwork();
+  const [onProviderInit, , toggleProviderInit] = useValueWatcher(hasInit);
 
   const init = async () => {
     const hasProvider = await detectEthereumProvider();
-    const network = networkMap[hasProvider.chainId];
+    const network = networkMap[hasProvider?.chainId];
 
     if (hasProvider && !hasInit.value) {
       browserProvider = new ethers.BrowserProvider(window.ethereum);
@@ -28,39 +29,22 @@ export function useEthersProvider() {
         network.name,
         network.apiKey
       );
-      hasInit.value = true;
-    } else {
+      toggleProviderInit();
+    } else if (!hasInit.value && !hasProvider) {
       error.value = "Please visit this website from a web3 enabled browser.";
     }
   };
 
-  onNetworkChanged(async (network) => {
-    const id = `0x${network.id}`;
+  onNetworkChanged(() => {
+    if (network.name) {
+      const id = `0x${network.id}`;
 
-    alchemyProvider = new ethers.AlchemyProvider(
-      network.name,
-      networkMap[id].apiKey
-    );
+      alchemyProvider = new ethers.AlchemyProvider(
+        network.name,
+        networkMap[id].apiKey
+      );
+    }
   });
-
-  watch(
-    () => hasInit.value,
-    async () => {
-      while (initListeners.length) {
-        const cb = initListeners.shift();
-        cb({ browserProvider, alchemyProvider });
-      }
-    }
-  );
-
-  // ensure fn's get called if already initialized
-  const onProviderInit = (cb) => {
-    if (!hasInit.value) {
-      initListeners.push(cb);
-    } else {
-      cb({ browserProvider, alchemyProvider });
-    }
-  };
 
   init();
 

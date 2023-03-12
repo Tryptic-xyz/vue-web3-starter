@@ -1,15 +1,15 @@
 import { ref, computed, watch } from "vue";
 import { useEthersProvider } from "./useEthersProvider";
+import { useValueWatcher } from "./useValueWatcher";
 
 const account = ref(null);
 const listeningToEvents = ref(false);
 const hasInit = ref(false);
 const error = ref(false);
-const disconnectEventListeners = [];
-const connectEventListeners = [];
 
 export function useWallet() {
   const { onProviderInit, getProviders } = useEthersProvider();
+  const [onAccountConnected, onAccountDisconnected] = useValueWatcher(account);
 
   const setAccount = (address) => {
     account.value = address ? address.toLocaleLowerCase() : address;
@@ -75,35 +75,11 @@ export function useWallet() {
   };
 
   const getSigner = async () => {
-    const { browserProvider } = getProviders();
-    return await browserProvider.getSigner();
-  };
-
-  const onAccountDisconnected = (cb = () => null) => {
-    disconnectEventListeners.push(cb);
-  };
-
-  const onAccountConnected = (cb = () => null) => {
-    connectEventListeners.push(cb);
-  };
-
-  watch(
-    () => account.value,
-    (curr, prev) => {
-      if (curr && !prev) {
-        while (connectEventListeners.length) {
-          const cb = connectEventListeners.shift();
-          cb(account.value);
-        }
-      }
-      if (!curr && prev) {
-        while (disconnectEventListeners.length) {
-          const cb = disconnectEventListeners.shift();
-          cb();
-        }
-      }
+    if (account.value) {
+      const { browserProvider } = getProviders();
+      return await browserProvider.getSigner();
     }
-  );
+  };
 
   onProviderInit(initWallet);
 

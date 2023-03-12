@@ -1,25 +1,24 @@
 import { ethers } from "ethers";
+import { ref } from "vue";
+import camelCase from "camelcase";
+
 import { useEthersProvider } from "./useEthersProvider";
 import { useWallet } from "./useWallet";
 import { useCreateTxUrl } from "./useCreateTxUrl";
-import camelCase from "camelcase";
-import { watch, ref } from "vue";
+import { useValueWatcher } from "./useValueWatcher";
 
-// TODO !!! i can probably extract this listener pattern into a composable
-const hasInit = ref(false);
 const txPending = ref(false);
-const contractListeners = [];
 
 export function useContract({ address, abi }) {
   const { getSigner } = useWallet();
   const { getProviders, onProviderInit } = useEthersProvider();
+  const [onContractInit, , toggleInit] = useValueWatcher();
   let readEthersContract, writeEthersContract;
 
-  onProviderInit(async ({ alchemyProvider }) => {
-    const signer = await getSigner();
+  onProviderInit(async () => {
+    const { alchemyProvider } = getProviders();
     readEthersContract = new ethers.Contract(address, abi, alchemyProvider);
-    writeEthersContract = new ethers.Contract(address, abi, signer);
-    hasInit.value = true;
+    toggleInit();
   });
 
   const readContract = async (method, args = []) => {
@@ -28,7 +27,9 @@ export function useContract({ address, abi }) {
     if (!readEthersContract) {
       readEthersContract = new ethers.Contract(address, abi, alchemyProvider);
     }
-    return readEthersContract[method](...args);
+    return readEthersContract[method](...args, {
+      from: "0x252477061094e2457Af6e5BfCBeD9aeF7F3e1386",
+    });
   };
 
   const batchReadContract = async (methods) => {
@@ -38,6 +39,8 @@ export function useContract({ address, abi }) {
       readContract(methodName?.name || methodName, methodArgs)
     );
 
+    // use allSettled?
+    // TODO handle errors here
     const completedPromises = await Promise.all(promises);
 
     completedPromises.forEach((result, i) => {
@@ -65,11 +68,11 @@ export function useContract({ address, abi }) {
   };
 
   const writeContract = async (method, args = [], overrides = {}) => {
-    const signer = await getSigner();
     txPending.value = true;
 
     // prevent issues on hot-reload
-    if (!readEthersContract) {
+    if (!writeEthersContract) {
+      const signer = await getSigner();
       writeEthersContract = new ethers.Contract(address, abi, signer);
     }
 
@@ -93,26 +96,6 @@ export function useContract({ address, abi }) {
       }
     }
   };
-
-  const onContractInit = (cb) => {
-    if (hasInit.value) {
-      cb();
-    } else {
-      contractListeners.push(cb);
-    }
-  };
-
-  watch(
-    () => hasInit.value,
-    (isInit, wasInit) => {
-      if (isInit && !wasInit) {
-        while (contractListeners.length) {
-          const cb = contractListeners.shift();
-          cb();
-        }
-      }
-    }
-  );
 
   return {
     readContract,

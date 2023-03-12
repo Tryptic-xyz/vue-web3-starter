@@ -1,6 +1,8 @@
 import { useWallet } from "./useWallet";
 import { useContract } from "./useContract";
 import { toRefs, reactive, ref } from "vue";
+import { useSyncReactiveWithObject } from "./useSyncReactiveWithObject";
+import { useValueWatcher } from "./useValueWatcher";
 
 const abi = [
   {
@@ -464,7 +466,7 @@ const account = reactive({
 });
 
 export function useTest() {
-  const { account: address } = useWallet();
+  const { account: address, onAccountConnected } = useWallet();
 
   const { writeContract, batchReadContract, onContractInit, txPending } =
     useContract({
@@ -475,6 +477,7 @@ export function useTest() {
   const init = async () => {
     if (!fetching.value) {
       fetching.value = true;
+
       const results = await batchReadContract([
         ["alreadyMinted", [address.value]],
         [
@@ -510,11 +513,8 @@ export function useTest() {
           [address.value, CONTRACT_CONSTANTS.observerID],
         ],
       ]);
+      useSyncReactiveWithObject(account, results);
 
-      // sync with state
-      Object.keys(results).forEach((key) => {
-        account[key] = results[key];
-      });
       fetching.value = false;
     }
   };
@@ -532,7 +532,19 @@ export function useTest() {
     }
   };
 
-  onContractInit(init);
+  onAccountConnected(() => {
+    onContractInit(init, { once: true });
+  });
 
-  return { ...toRefs(account), testTX, txPending };
+  const [onConnected, onDisconnected, toggleConnected] = useValueWatcher();
+
+  onConnected(() => {
+    console.log("set");
+  });
+
+  onDisconnected(() => {
+    console.log("unset");
+  });
+
+  return { test: toggleConnected, ...toRefs(account), testTX, txPending };
 }

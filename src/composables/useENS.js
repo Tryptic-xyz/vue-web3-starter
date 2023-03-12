@@ -9,16 +9,15 @@ const { onNetworkChanged } = useConnectedNetwork();
 const displayName = ref("");
 
 export function useENS() {
-  const { alchemyProvider } = getProviders();
+  const { onAccountConnected, onAccountDisconnected, account } = useWallet();
 
-  const { onAccountConnected, onAccountDisconnected } = useWallet();
-
-  const lookupAddress = async (address) => {
-    displayName.value = await alchemyProvider.lookupAddress(address);
+  const lookupAddress = async () => {
+    const { alchemyProvider } = getProviders();
+    displayName.value = await alchemyProvider.lookupAddress(account.value);
   };
 
-  onAccountConnected((account) => {
-    lookupAddress(account);
+  onAccountConnected(() => {
+    lookupAddress();
   });
 
   onAccountDisconnected(() => {
