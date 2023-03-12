@@ -9,8 +9,7 @@
 </WalletStatus> -->
 <script setup>
 import { useWallet } from "../composables/useWallet";
-const { account, hasInit, accountTruncated, onAccountConnected, signMessage } =
-  useWallet();
+const { account, hasInit, accountTruncated, onAccountConnected } = useWallet();
 </script>
 
 <template>

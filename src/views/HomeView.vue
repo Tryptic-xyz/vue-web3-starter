@@ -1,21 +1,26 @@
 <script setup>
 import NumberCounter from "../components/NumberCounter.vue";
 import LoadingButton from "../components/LoadingButton.vue";
-import { useTestContract } from "../composables/useTestContract";
+import Web3Provider from "../components/Web3Provider.vue";
 import { showTxToast } from "../utils/ToastComponents";
+import { useTest } from "../composables/useTest";
 
-const { mintObservers, txPending } = useTestContract();
+const { testTX, txPending, observerBalance } = useTest();
 
 const m = async (q) => {
-  const tx = await mintObservers(q);
-  console.log(tx);
+  const tx = await testTX();
+  // const tx = await mintObservers(q);
+  // console.log(tx);
   showTxToast(tx);
+  // const s = await getSigner();
+  // console.log(s);
 };
 </script>
 
 <template>
-  <main>
+  <main class="flex flex-col items-center justify-center">
     <div class="flex items-center justify-center">
+      {{ observerBalance }}
       <NumberCounter />
     </div>
 

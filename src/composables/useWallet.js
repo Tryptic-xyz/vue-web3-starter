@@ -1,19 +1,19 @@
-// TODO add sign message logic
-import { computed, ref, watch } from "vue";
-import { useProvider } from "./useProvider";
+import { ref, computed, watch } from "vue";
+import { useEthersProvider } from "./useEthersProvider";
+import { useValueWatcher } from "./useValueWatcher";
 
 const account = ref(null);
-const error = ref(false);
-const hasInit = ref(false);
 const listeningToEvents = ref(false);
+const hasInit = ref(false);
+const error = ref(false);
 
-export const useWallet = () => {
-  const {
-    error: providerError,
-    hasInit: providerInit,
-    provider,
-    onProviderInit,
-  } = useProvider();
+export function useWallet() {
+  const { onProviderInit, getProviders } = useEthersProvider();
+  const [onAccountConnected, onAccountDisconnected] = useValueWatcher(account);
+
+  const setAccount = (address) => {
+    account.value = address ? address.toLocaleLowerCase() : address;
+  };
 
   const accountTruncated = computed(() => {
     if (account.value) {
@@ -26,10 +26,37 @@ export const useWallet = () => {
     }
   });
 
-  const setAccount = (accountToAdd) => {
-    account.value = accountToAdd
-      ? accountToAdd.toLocaleLowerCase()
-      : accountToAdd;
+  const listenToEvents = () => {
+    if (listeningToEvents.value) {
+      return;
+    }
+
+    window.ethereum.on("accountsChanged", async (accts) => {
+      if (accts.length) {
+        setAccount(accts[0].address);
+      } else {
+        setAccount(false);
+      }
+    });
+
+    window.ethereum.on("disconnected", () => {
+      console.log("disconnected");
+      setAccount(null);
+    });
+
+    listeningToEvents.value = true;
+  };
+
+  const initWallet = async () => {
+    const { browserProvider } = getProviders();
+    const accts = await browserProvider.listAccounts();
+
+    if (accts.length) {
+      setAccount(accts[0].address);
+    }
+
+    listenToEvents();
+    hasInit.value = true;
   };
 
   const connect = async () => {
@@ -47,61 +74,23 @@ export const useWallet = () => {
     }
   };
 
-  const listenToEvents = () => {
-    if (listeningToEvents.value) {
-      return;
+  const getSigner = async () => {
+    if (account.value) {
+      const { browserProvider } = getProviders();
+      return await browserProvider.getSigner();
     }
-
-    window.ethereum.on("accountsChanged", async (accts) => {
-      if (accts.length) {
-        setAccount(accts[0]);
-      } else {
-        setAccount(null);
-      }
-    });
-
-    window.ethereum.on("disconnected", (chainId) => {
-      console.log("disconnected");
-      setAccount(null);
-    });
-
-    listeningToEvents.value = true;
   };
 
-  const onAccountConnected = (
-    onConnected = () => null,
-    onDisconnected = () => null
-  ) => {
-    watch(
-      () => account.value,
-      () => {
-        if (account.value) {
-          onConnected(account.value);
-        } else {
-          onDisconnected(account.value);
-        }
-      },
-      { immediate: true }
-    );
-  };
-
-  onProviderInit(async () => {
-    const accts = await provider.value.eth.getAccounts();
-
-    if (accts.length) {
-      setAccount(accts[0]);
-    }
-
-    listenToEvents();
-    hasInit.value = true;
-  });
+  onProviderInit(initWallet);
 
   return {
     error,
     account,
     connect,
     hasInit,
+    getSigner,
     accountTruncated,
     onAccountConnected,
+    onAccountDisconnected,
   };
-};
+}

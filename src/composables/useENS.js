@@ -1,82 +1,32 @@
-import { ref, watchEffect, watch } from "vue";
-import { useContract } from "./useContract";
-import { useWallet } from "./useWallet";
-import { useProvider } from "./useProvider";
+import { useEthersProvider } from "./useEthersProvider";
 import { useConnectedNetwork } from "./useConnectedNetwork";
+import { useWallet } from "./useWallet";
+import { ref } from "vue";
 
-const displayName = ref("");
-const hasInit = ref(false);
-
-const ENS_ABI = [
-  {
-    inputs: [{ internalType: "contract ENS", name: "_ens", type: "address" }],
-    stateMutability: "nonpayable",
-    type: "constructor",
-  },
-  {
-    inputs: [
-      { internalType: "address[]", name: "addresses", type: "address[]" },
-    ],
-    name: "getNames",
-    outputs: [{ internalType: "string[]", name: "r", type: "string[]" }],
-    stateMutability: "view",
-    type: "function",
-  },
-];
-
-const ENS_ADDRESS = "0x3671aE578E63FdF66ad4F3E12CC0c0d71Ac7510C";
-let getNames = null;
-
+const { getProviders } = useEthersProvider();
 const { onNetworkChanged } = useConnectedNetwork();
 
-export const useENS = () => {
-  const { onAccountConnected, account } = useWallet();
-  const { network, onProviderInit } = useProvider();
+const displayName = ref("");
 
-  const initContract = () => {
-    const methods = useContract({ address: ENS_ADDRESS, abi: ENS_ABI });
-    getNames = methods.getNames;
+export function useENS() {
+  const { onAccountConnected, onAccountDisconnected, account } = useWallet();
+
+  const lookupAddress = async () => {
+    const { alchemyProvider } = getProviders();
+    displayName.value = await alchemyProvider.lookupAddress(account.value);
   };
 
-  const getDisplayName = async (accounts) => {
-    if (network.name === "mainnet") {
-      try {
-        const res = await getNames(accounts).call();
-        setDisplayName(res[0]);
-      } catch (err) {
-        console.log(err);
-      }
-    }
-    hasInit.value = true;
-  };
-
-  const setDisplayName = (name) => {
-    displayName.value = name;
-  };
-
-  onProviderInit(() => {
-    if (network.name === "mainnet") {
-      initContract();
-    }
-    hasInit.value = true;
+  onAccountConnected(() => {
+    lookupAddress();
   });
 
-  onNetworkChanged((networkName) => {
-    if (networkName !== "mainnet") {
-      setDisplayName(false);
-    } else {
-      getDisplayName([account.value]);
-    }
+  onAccountDisconnected(() => {
+    displayName.value = "";
   });
 
-  onAccountConnected(
-    () => {
-      getDisplayName([account.value]);
-    },
-    () => {
-      setDisplayName(false);
-    }
-  );
+  onNetworkChanged(() => {
+    lookupAddress();
+  });
 
-  return { displayName, getDisplayName, hasInit };
-};
+  return { displayName };
+}

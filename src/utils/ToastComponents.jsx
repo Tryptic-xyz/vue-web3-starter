@@ -14,7 +14,7 @@ export const errorToast = ({ txError, txURL }) => {
             target="_blank"
             rel="noopener noreferrer"
           >
-            View it on Etherscan
+            View Transaction on Etherscan
           </a>
         </p>
       )}
@@ -33,7 +33,7 @@ export const successToast = ({ message, txURL }) => {
           target="_blank"
           rel="noopener noreferrer"
         >
-          View it on Etherscan
+          View Transaction on Etherscan
         </a>
       </p>
     </div>

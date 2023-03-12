@@ -1,18 +1,16 @@
-import { reactive, toRefs, watch } from "vue";
+//TODO maybe move this into useethersprovider?
+
+import { reactive, watch } from "vue";
 
 const networkMap = {
-  1: "mainnet",
-  3: "ropsten",
-  4: "rinkeby",
+  1: "homestead",
   5: "goerli",
-  42: "kovan",
 };
 
 const etherscanMap = {
   mainnet: "https://etherscan.io/tx/",
   goerli: "https://goerli.etherscan.io/tx/",
 };
-
 const network = reactive({
   id: null,
   name: "",
@@ -32,12 +30,16 @@ export function useConnectedNetwork() {
     watch(
       () => network.name,
       async () => {
-        onChange(network.name);
+        onChange(network);
       }
     );
   };
 
-  window.ethereum.on("chainChanged", getNetwork);
+  // prevent errors on non web3 browsers
+  if (window.ethereum) {
+    window.ethereum.on("chainChanged", getNetwork);
+    getNetwork();
+  }
 
   return {
     network,
