@@ -1,3 +1,5 @@
+//TODO maybe move this into useethersprovider?
+
 import { reactive, watch } from "vue";
 
 const networkMap = {
@@ -9,7 +11,6 @@ const etherscanMap = {
   mainnet: "https://etherscan.io/tx/",
   goerli: "https://goerli.etherscan.io/tx/",
 };
-
 const network = reactive({
   id: null,
   name: "",
