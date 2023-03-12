@@ -519,16 +519,23 @@ export function useTest() {
     }
   };
 
-  const testTX = async (q = 1) => {
+  const testTX = async (q = 2) => {
     try {
       const receipt = await writeContract("mintObservers", [q], {
         value: q * 1,
       });
-      account.observerBalance += q;
+      // const receipt = await writeContract("redeemObservers", [q], {});
+      // account.observerBalance -= q;
 
-      return receipt;
+      return { receipt, message: `You redeemed ${q} Observer!` };
     } catch (error) {
-      return error;
+      return {
+        error: {
+          ...error,
+          message:
+            "There was a problem minting. Maybe you already have the maximum?",
+        },
+      };
     }
   };
 
@@ -536,15 +543,5 @@ export function useTest() {
     onContractInit(init, { once: true });
   });
 
-  const [onConnected, onDisconnected, toggleConnected] = useValueWatcher();
-
-  onConnected(() => {
-    console.log("set");
-  });
-
-  onDisconnected(() => {
-    console.log("unset");
-  });
-
-  return { test: toggleConnected, ...toRefs(account), testTX, txPending };
+  return { ...toRefs(account), testTX, txPending };
 }
