@@ -5,7 +5,7 @@ const { hasInit, error } = useEthersProvider();
 
 <template>
   <slot v-if="hasInit" name="hasWeb3" />
-  <slot v-if="error" name="noWeb3">
+  <slot :error="error" v-if="error" name="noWeb3">
     {{ error }}
   </slot>
 </template>
