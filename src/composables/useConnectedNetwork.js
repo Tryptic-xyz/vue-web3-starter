@@ -29,17 +29,24 @@ export function useConnectedNetwork() {
   const onNetworkChanged = (onChange) => {
     watch(
       () => network.name,
-      async () => {
-        onChange(network);
+      (curr, prev) => {
+        // prevent infinite reload cycle
+        if (prev) {
+          onChange(network);
+        }
       }
     );
   };
 
   // prevent errors on non web3 browsers
   if (window.ethereum) {
-    window.ethereum.on("chainChanged", getNetwork);
     getNetwork();
+    window.ethereum.on("chainChanged", getNetwork);
   }
+
+  onNetworkChanged(() => {
+    window.location.reload();
+  });
 
   return {
     network,
