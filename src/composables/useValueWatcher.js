@@ -3,6 +3,7 @@ import { watch, ref, isRef } from "vue";
 // pass either a ref to watch, or a boolean value to toggle, or nothing
 // is there a way i can pass a value to this function, that is eventually
 // passed as a param to the watchers that isn't the value being watched?
+// maybe this should be called useBooleanWatcher?
 export function useValueWatcher(value = false) {
   const initWatchers = [];
   const unInitWatchers = [];
@@ -51,5 +52,5 @@ export function useValueWatcher(value = false) {
     }
   );
 
-  return [addValueSetWatcher, addValueUnsetWatcher, toggle];
+  return [addValueSetWatcher, addValueUnsetWatcher, toggle, refToWatch];
 }
