@@ -1,13 +1,12 @@
+// TODO maybe we can add some sort of alert if user is on wrong network?
 import { ethers } from "ethers";
 import { ref } from "vue";
 import detectEthereumProvider from "@metamask/detect-provider";
-import { useConnectedNetwork } from "./useConnectedNetwork";
 import { useValueWatcher } from "./useValueWatcher";
 
 let browserProvider;
 let alchemyProvider;
 
-const hasInit = ref(false);
 const error = ref(false);
 
 const networkMap = {
@@ -15,21 +14,33 @@ const networkMap = {
   "0x5": { name: "goerli", apiKey: "_kk3D76yzBoH7SoPR-iKvpDd9cIDAqFi" },
 };
 
+// toggle provider detection
+// can use this to show a pending state in UI?
+const [
+  ,
+  onProviderDetectionComplete,
+  toggleProviderDetectionComplete,
+  hasInit,
+] = useValueWatcher();
+
+// let application know we have a provider
+const [onProviderInit, , toggleProviderInit] = useValueWatcher(false);
+
+// let application know we have do not have a provider
+const [onNoProvider, , toggleNoProvider] = useValueWatcher(false);
+
 export function useEthersProvider() {
-  const { onNetworkChanged, network } = useConnectedNetwork();
-  const [onProviderInit, , toggleProviderInit] = useValueWatcher(hasInit);
-  const [onNoProvider, , toggleNoProvider] = useValueWatcher(false);
-
-  // maybe have a no provider detected event here?
-  // listen to it in directive?
-
   const init = async () => {
     const hasProvider = await detectEthereumProvider();
+    toggleProviderDetectionComplete(hasProvider);
+
+    // We have a provider so let's setup our ethers providers
     if (hasProvider && !hasInit.value) {
       const chainId = await hasProvider.request({
         method: "eth_chainId",
       });
       const network = networkMap[chainId];
+
       browserProvider = new ethers.BrowserProvider(window.ethereum);
       alchemyProvider = new ethers.AlchemyProvider(
         network.name,
@@ -37,31 +48,22 @@ export function useEthersProvider() {
       );
       toggleProviderInit();
     } else if (!hasInit.value && !hasProvider) {
+      // No provider - browser w/o wallet or a mobile device!!
       error.value = "Please visit this website from a web3 enabled browser.";
       toggleNoProvider();
     }
   };
 
-  onNetworkChanged(() => {
-    if (network.name) {
-      const id = `0x${network.id}`;
-
-      alchemyProvider = new ethers.AlchemyProvider(
-        network.name,
-        networkMap[id].apiKey
-      );
-    }
-  });
+  const getProviders = () => ({ browserProvider, alchemyProvider });
 
   init();
 
   return {
-    getProviders() {
-      return { browserProvider, alchemyProvider };
-    },
     error,
     hasInit,
-    onProviderInit,
+    getProviders,
     onNoProvider,
+    onProviderInit,
+    onProviderDetectionComplete,
   };
 }
