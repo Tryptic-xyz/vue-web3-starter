@@ -27,9 +27,7 @@ export function useContract({ address, abi }) {
     if (!readEthersContract) {
       readEthersContract = new ethers.Contract(address, abi, alchemyProvider);
     }
-    return readEthersContract[method](...args, {
-      from: "0x252477061094e2457Af6e5BfCBeD9aeF7F3e1386",
-    });
+    return readEthersContract[method](...args);
   };
 
   const batchReadContract = async (methods) => {
@@ -92,7 +90,17 @@ export function useContract({ address, abi }) {
         const e = JSON.parse(error.message.substring(start, end));
         throw { error: { ...e.error } };
       } else {
-        throw { error: { ...error, message: "Transaction Failed!" } };
+        let errObj = {
+          ...error,
+          message: "Transaction Failed!",
+        };
+        if (error.receipt) {
+          errObj.receipt = {
+            ...error.receipt,
+            txURL: useCreateTxUrl(error.receipt.hash),
+          };
+        }
+        throw errObj;
       }
     }
   };
