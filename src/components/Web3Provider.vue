@@ -1,11 +1,11 @@
 <script setup>
-import { useProvider } from "../composables/useProvider";
-const { hasProvider, hasInit, error } = useProvider();
+import { useEthersProvider } from "../composables/useEthersProvider";
+const { hasInit, error } = useEthersProvider();
 </script>
 
 <template>
-  <slot v-if="hasProvider && hasInit" name="hasWeb3" />
-  <slot v-if="hasInit && !hasProvider" name="noWeb3">
+  <slot v-if="hasInit" name="hasWeb3" />
+  <slot :error="error" v-if="error" name="noWeb3">
     {{ error }}
   </slot>
 </template>

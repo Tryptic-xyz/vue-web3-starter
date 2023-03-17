@@ -1,14 +1,25 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
+import { createApp } from "vue";
+import { createPinia } from "pinia";
 
-import App from './App.vue'
-import router from './router'
+import App from "./App.vue";
+import router from "./router";
+import Toast from "vue-toastification";
 
-import './assets/main.css'
+import "./assets/main.css";
+import "vue-toastification/dist/index.css";
 
-const app = createApp(App)
+const options = {
+  position: "top-center",
+  draggable: false,
+  closeOnClick: false,
+  timeout: 20000,
+  toastClassName: "osnipe",
+};
 
-app.use(createPinia())
-app.use(router)
+const app = createApp(App);
 
-app.mount('#app')
+app.use(createPinia());
+app.use(router);
+app.use(Toast, options);
+
+app.mount("#app");

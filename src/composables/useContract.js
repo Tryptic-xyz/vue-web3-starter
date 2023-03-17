@@ -1,55 +1,115 @@
-import { useProvider } from "./useProvider";
+import { ethers } from "ethers";
+import { ref } from "vue";
 import camelCase from "camelcase";
 
-export const useContract = ({ address, abi, network, expanded }) => {
-  const { provider, goerliProvider } = useProvider();
-  let contract;
+import { useEthersProvider } from "./useEthersProvider";
+import { useWallet } from "./useWallet";
+import { useCreateTxUrl } from "./useCreateTxUrl";
+import { useValueWatcher } from "./useValueWatcher";
 
-  if (network === "mainnet" || !network) {
-    contract = new provider.value.eth.Contract(abi, address);
-  } else if (network === "goerli") {
-    contract = new goerliProvider.value.eth.Contract(abi, address);
-  }
+const txPending = ref(false);
+
+export function useContract({ address, abi }) {
+  const { getSigner } = useWallet();
+  const { getProviders, onProviderInit } = useEthersProvider();
+  const [onContractInit, , toggleInit] = useValueWatcher();
+  let readEthersContract, writeEthersContract;
+
+  onProviderInit(async () => {
+    const { alchemyProvider } = getProviders();
+    readEthersContract = new ethers.Contract(address, abi, alchemyProvider);
+    toggleInit();
+  });
 
   const readContract = async (method, args = []) => {
-    // TODO only read if method exists?
-    const res = await contract.methods[method](...args).call();
-    return res;
+    const { alchemyProvider } = getProviders();
+    // prevent issues on hot-reload
+    if (!readEthersContract) {
+      readEthersContract = new ethers.Contract(address, abi, alchemyProvider);
+    }
+    return readEthersContract[method](...args);
   };
 
   const batchReadContract = async (methods) => {
     const results = {};
-    //TODO return a different variable name in case same method is used multiple times
-    // ex: check balance of multiple coin ids - balanceOf
 
     const promises = methods.map(([methodName, methodArgs = []]) =>
-      readContract(methodName, methodArgs)
+      readContract(methodName?.name || methodName, methodArgs)
     );
 
+    // use allSettled?
+    // TODO handle errors here
     const completedPromises = await Promise.all(promises);
 
     completedPromises.forEach((result, i) => {
-      results[camelCase(methods[i][0])] = result;
+      // determine if we need to rename property of returned value
+      const methodName =
+        typeof methods[i][0] == "object"
+          ? methods[i][0]?.returnAs
+          : methods[i][0];
+
+      // allow type conversion
+      const castAs = typeof methods[i][0] === "object" && methods[i][0].castAs;
+
+      if (castAs == "number") {
+        results[camelCase(methodName)] = parseInt(result);
+      } else if (castAs == "boolean") {
+        results[camelCase(methodName)] = Boolean(parseInt(result));
+      } else if (castAs == "string") {
+        results[camelCase(methodName)] = result["toString"]();
+      } else {
+        results[camelCase(methodName)] = result;
+      }
     });
 
     return results;
   };
 
-  const writeContract = async (method, from, value, args = []) => {
-    return contract.methods[method](...args).send({
-      from,
-      value,
-    });
-  };
+  const writeContract = async (method, args = [], overrides = {}) => {
+    txPending.value = true;
 
-  if (!expanded) {
-    return { ...contract.methods };
-  }
+    // prevent issues on hot-reload
+    if (!writeEthersContract) {
+      const signer = await getSigner();
+      writeEthersContract = new ethers.Contract(address, abi, signer);
+    }
+
+    try {
+      const tx = await writeEthersContract[method](...args, overrides);
+      const receipt = await tx.wait();
+      txPending.value = false;
+      return {
+        ...receipt,
+        txURL: useCreateTxUrl(receipt.hash),
+      };
+    } catch (error) {
+      txPending.value = false;
+      if (error.code === "ACTION_REJECTED") {
+        const start = error.message.indexOf("info") + 5;
+        const end = error.message.indexOf("code=") - 2;
+        const e = JSON.parse(error.message.substring(start, end));
+        throw { error: { ...e.error } };
+      } else {
+        let errObj = {
+          ...error,
+          message: "Transaction Failed!",
+        };
+        if (error.receipt) {
+          errObj.receipt = {
+            ...error.receipt,
+            txURL: useCreateTxUrl(error.receipt.hash),
+          };
+        }
+        throw errObj;
+      }
+    }
+  };
 
   return {
-    methods: contract.methods,
     readContract,
-    writeContract,
     batchReadContract,
+    onContractInit,
+    writeContract,
+    txPending,
   };
-};
+}
